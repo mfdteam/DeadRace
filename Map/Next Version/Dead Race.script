@@ -1,0 +1,280 @@
+type
+  aPlayer = Record
+    SpawnX: Integer;
+    SpawnY: Integer;
+    Hero: Integer;
+    HeroType: Integer;
+    HeroChosen: Boolean;
+    SavePoint: Boolean;
+    MusicWin: Boolean;
+  end;
+
+
+var
+  I, K: Integer;
+  Players: array[0..11] of aPlayer;
+  Winner: Integer;
+  RaceFinished: Boolean;
+  AmbushMsg: array[0..7] of Boolean;
+
+
+procedure AutoFeed;
+var
+  UnitsToFeed: array of Integer;
+begin
+  for I := 0 to 11 do
+  begin
+    if States.PlayerEnabled(I) then
+      UnitsToFeed := States.PlayerGetAllUnits(I);
+    for K := 0 to length(UnitsToFeed) - 1 do
+      Actions.UnitHungerSet(UnitsToFeed[K], States.UnitMaxHunger);
+  end;
+end;
+
+
+procedure OnMissionStart;
+var
+  aX: Integer;
+begin
+  Actions.PlayWAV(-1, 'Go', 0.8);
+  AutoFeed;
+  for I := 0 to 7 do
+  begin
+    AmbushMsg[I] := False;
+
+    with Players[I] do
+    begin
+      SpawnX := 9 + I;
+      SpawnY := 55;
+      Hero := -1;
+      HeroChosen := False;
+      SavePoint := False;
+    end;
+
+  end;
+
+  for aX := 3 to 13 do
+    if States.UnitAt(aX, 63) > 0 then
+      Actions.UnitKill(States.UnitAt(aX, 63), True);
+
+  Winner := -1;
+
+  RaceFinished := False;
+
+  Actions.ShowMsg(-1, '<$0>');
+
+  for I := 0 to 7 do
+  for K := 0 to 7 do
+    if (States.PlayerEnabled(I))
+    and (States.PlayerEnabled(K))
+    and (I <> K) then
+      Actions.PlayerAllianceChange(I, K, True, True);
+
+end;
+
+
+function InRange(Value, Min, Max: Integer): Boolean;
+begin
+  Result := (Value >= Min) and (Value <= Max);
+end;
+
+
+procedure OnPlanRoadPlaced(P, X, Y: Integer);
+var
+  X2, Y2: Integer;
+begin
+
+  Actions.PlanRemove(P, X, Y);
+
+  if (RaceFinished)
+  and (P <> Winner) then
+    Exit;
+
+  if (Y = 30)
+  and (InRange(X, 58, 61))
+  and (not AmbushMsg[P]) then
+  begin
+    Actions.ShowMsg(P, '<$2>');
+    AmbushMsg[P] := True;
+  end;
+
+  if not Players[P].HeroChosen then
+  begin
+    Players[P].Hero := Actions.GiveGroup(P, 19, Players[P].SpawnX, Players[P].SpawnY, 1, 1, 1);
+    Players[P].HeroType := 19;
+    Players[P].HeroChosen := True;
+  end;
+  
+  if (Players[P].HeroChosen)
+  and (Players[P].HeroType = 19)
+  and (Players[P].Hero > 0) then
+  begin
+    X2 := States.UnitPositionX(States.GroupMember(Players[P].Hero, 0));
+    Y2 := States.UnitPositionY(States.GroupMember(Players[P].Hero, 0));
+    if (Abs(X2 - X) <= 1)
+    and (Abs(Y2 - Y) <= 1) then
+    begin
+      Actions.GroupKillAll(Players[P].Hero, True);
+      Players[P].Hero := Actions.GiveGroup(P, 19, X, Y, 1, 1, 1);
+      Actions.GroupHungerSet(Players[P].Hero, States.UnitMaxHunger);
+    end;
+  end;
+
+  if (Players[P].HeroChosen)
+  and (Players[P].HeroType = 20) then
+  begin
+    X2 := States.UnitPositionX(States.GroupMember(Players[P].Hero, 0));
+    Y2 := States.UnitPositionY(States.GroupMember(Players[P].Hero, 0));
+    if (Abs(X2 - X) <= 100)
+    and (Abs(Y2 - Y) <= 100) then
+    begin
+      Actions.GroupKillAll(Players[P].Hero, True);
+      Players[P].Hero := Actions.GiveGroup(P, 20, X, Y, 1, 1, 1);
+      Actions.GroupHungerset(Players[P].Hero, States.UnitMaxHunger);
+    end;
+  end;
+end;
+
+
+procedure SavePointsNew(P: Integer);
+var
+  Obj, X2, Y2: Integer;
+begin
+  if Players[P].Hero <= 0 then
+    Exit;
+  X2 := States.UnitPositionX(States.GroupMember(Players[P].Hero, 0));
+  Y2 := States.UnitPositionY(States.GroupMember(Players[P].Hero, 0));
+  Obj := States.MapTileObject(X2, Y2);
+  if Obj = 60 then
+  begin
+    Players[P].SpawnX := X2;
+    Players[P].SpawnY := Y2;
+    Actions.MapTileObjectSet(X2, Y2, 59); 
+    Players[P].SavePoint := True;
+  end;
+end;
+
+
+procedure SavePoints(P: Integer);
+var
+  Obj, X2, Y2: Integer;
+begin
+  if Players[P].Hero <= 0 then
+    Exit;
+  X2 := States.UnitPositionX(States.GroupMember(Players[P].Hero, 0));
+  Y2 := States.UnitPositionY(States.GroupMember(Players[P].Hero, 0));
+  Obj := States.MapTileObject(X2, Y2);
+  if Obj = 60 then
+  begin
+    Actions.MapTileObjectSet(Players[P].SpawnX, Players[P].SpawnY, 60); 
+    Players[P].SavePoint := False;
+  end;
+end;
+
+
+procedure OnPlanFieldPlaced(P, X, Y: Integer);
+begin
+  Actions.PlanRemove(P, X, Y);
+end;
+
+
+procedure OnPlanWinefieldPlaced(P, X, Y: Integer);
+begin
+  Actions.PlanRemove(P, X, Y);
+end;
+
+
+procedure AddStone;
+var
+  House: array of Integer;
+begin
+  House := States.PlayerGetAllHouses(9);
+  for K := 0 to length(House) - 1 do
+    Actions.HouseAddWaresTo(House[K], 1, 1);
+end;
+
+
+procedure Win;
+var
+  U, O: Integer;
+begin
+  if RaceFinished then
+    Exit;
+  U := States.UnitAt(55, 55);
+  if U > 0 then
+    begin
+      O := States.UnitOwner(U)
+      if InRange(O, 0, 7) then
+      begin
+        Actions.GroupKillAll(Players[O].Hero, True);
+        Players[O].Hero := Actions.GiveGroup(O, 20, 55, 55, 1, 1, 1);
+        Players[O].MusicWin := True;
+        Players[O].HeroType := 20;  
+        Actions.StopLoopedWAV(1);
+        Actions.PlayWAV(O, 'Win', 1);
+        Actions.ShowMsg(O, '<$3>');
+        Winner := O;
+        Actions.PlayerWin([O], False);
+        for I := 0 to 7 do
+          if (States.PlayerEnabled(I))
+          and (I <> Winner) then
+          begin
+            Actions.ShowMsg(I, '<$4>');
+            Actions.PlayerDefeat(I);
+          end;
+        RaceFinished := True;
+      end;
+    end;
+end;
+
+
+procedure OnUnitDied(aID, aKiller: Integer);
+var
+  O: Integer;
+begin
+  O := States.UnitOwner(aID);
+  if (InRange(aKiller, 9, 11))
+  and (InRange(States.UnitOwner(aID), 0, 7)) then
+  begin
+    Actions.PlayWAV(O, 'Wtf', 1);
+    Players[O].Hero := Actions.GiveGroup(O, Players[O].HeroType, Players[O].SpawnX, Players[O].SpawnY, 1, 1, 1);
+    Actions.GroupHungerSet(Players[O].Hero, States.UnitMaxHunger);
+    Actions.CinematicStart(O);
+    Actions.CinematicPanTo(O, Players[O].SpawnX, Players[O].SpawnY, 0);
+    Actions.CinematicEnd(O);
+  end;
+end;
+
+
+procedure OnTick;
+begin
+  for I := 0 to 7 do
+    if (Players[I].Hero > 0)
+    and (Players[I].SavePoint = False) then
+      SavePointsNew(I);
+
+  for I := 0 to 7 do
+    if (Players[I].Hero > 0)
+    and (Players[I].SavePoint = True) then
+      SavePoints(I);
+
+  if States.GameTime = 35 then
+    Actions.PlayWAVLooped(-1, 'Nya', 0.8);
+
+  if States.GameTime mod 10000 = 0 then
+    AutoFeed;
+
+  if States.GameTime mod 15 = 0 then
+    AddStone;
+
+  Win;
+
+  for I := 0 to 7 do
+  if Players[I].HeroType = 20 then
+    if States.GameTime = 220 then  
+      Actions.PlayWAVLooped(-1, 'Nya', 0.8);
+
+  if States.GameTime = 300 then
+    Actions.ShowMsg(-1, '<$1>');
+
+end;

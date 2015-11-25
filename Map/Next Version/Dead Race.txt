@@ -1,0 +1,4 @@
+SetSpecial
+BlockPeacetime
+BigDesc
+Just for lulz||Made by MFD Team:||Idea & Dynamic scripts - [$FA1010]Sertask[]|Map - [$FACE64]vovets1[]|Some useless fixes - [$25259E]andreus[]|||[$CECE66]Dead Race v. 0.62[]||- Initial Release

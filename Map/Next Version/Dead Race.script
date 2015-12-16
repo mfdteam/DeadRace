@@ -32,6 +32,12 @@ begin
 end;
 
 
+function InRange(Value, Min, Max: Integer): Boolean;
+begin
+  Result := (Value >= Min) and (Value <= Max);
+end;
+
+
 procedure OnMissionStart;
 var
   aX: Integer;
@@ -70,12 +76,6 @@ begin
     and (I <> K) then
       Actions.PlayerAllianceChange(I, K, True, True);
 
-end;
-
-
-function InRange(Value, Min, Max: Integer): Boolean;
-begin
-  Result := (Value >= Min) and (Value <= Max);
 end;
 
 
@@ -248,7 +248,7 @@ end;
 
 procedure OnUnitDied(aID, aKiller: Integer);
 var
-  O: Integer;
+  O, aX, aY, aD, aT: Integer;
 begin
   O := States.UnitOwner(aID);
   if (InRange(aKiller, 9, 11))
@@ -261,6 +261,17 @@ begin
     Actions.CinematicPanTo(O, Players[O].SpawnX, Players[O].SpawnY, 0);
     Actions.CinematicEnd(O);
   end;
+
+  if (O = 9)
+  and (States.GroupMemberCount(States.UnitsGroup(aID)) = 1) then
+  begin
+    aT := States.UnitType(aID);
+    aX := States.UnitPositionX(aID);
+    aY := States.UnitPositionY(aID);
+    aD := States.UnitDirection(aID);
+    Actions.GiveGroup(9, aT, aX, aY, aD, 1, 1);
+  end;
+
 end;
 
 

@@ -94,7 +94,7 @@ begin
   and (InRange(X, 58, 61))
   and (not AmbushMsg[P]) then
   begin
-    Actions.ShowMsg(P, '<$2>');
+    //Actions.ShowMsg(P, '<$2>');
     AmbushMsg[P] := True;
   end;
 

@@ -81,7 +81,7 @@ end;
 
 procedure OnPlanRoadPlaced(P, X, Y: Integer);
 var
-  X2, Y2: Integer;
+  X2, Y2, Dir: Integer;
 begin
 
   Actions.PlanRemove(P, X, Y);
@@ -111,11 +111,29 @@ begin
   begin
     X2 := States.UnitPositionX(States.GroupMember(Players[P].Hero, 0));
     Y2 := States.UnitPositionY(States.GroupMember(Players[P].Hero, 0));
+    if (X = X2) and (Y > Y2) then
+       Dir := 4;
+    if (X = X2) and (Y < Y2) then
+       Dir := 0;
+    if (X > X2) and (Y = Y2) then
+       Dir := 2;
+    if (X < X2) and (Y = Y2) then
+       Dir := 6;
+    if (X > X2) and (Y > Y2) then
+       Dir := 3;
+    if (X > X2) and (Y < Y2) then
+       Dir := 1;
+    if (X < X2) and (Y > Y2) then
+       Dir := 7;
+    if (X < X2) and (Y < Y2) then
+       Dir := 5;
+    if (X = X2) and (Y = Y2) then
+       Dir := States.KaMRandomI(8);
     if (Abs(X2 - X) <= 1)
     and (Abs(Y2 - Y) <= 1) then
     begin
       Actions.GroupKillAll(Players[P].Hero, True);
-      Players[P].Hero := Actions.GiveGroup(P, 19, X, Y, 1, 1, 1);
+      Players[P].Hero := Actions.GiveGroup(P, 19, X, Y, Dir, 1, 1);
       Actions.GroupHungerSet(Players[P].Hero, States.UnitMaxHunger);
     end;
   end;
@@ -129,7 +147,7 @@ begin
     and (Abs(Y2 - Y) <= 100) then
     begin
       Actions.GroupKillAll(Players[P].Hero, True);
-      Players[P].Hero := Actions.GiveGroup(P, 20, X, Y, 1, 1, 1);
+      Players[P].Hero := Actions.GiveGroup(P, 20, X, Y, Dir, 1, 1);
       Actions.GroupHungerset(Players[P].Hero, States.UnitMaxHunger);
     end;
   end;

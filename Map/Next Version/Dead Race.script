@@ -211,7 +211,7 @@ begin
         Players[O].MusicWin := True;
         Players[O].HeroType := 20;  
         Actions.StopLoopedWAV(1);
-        Actions.PlayWAV(O, 'Win', 1);
+        Actions.PlayWAV(-1, 'Win', 1);
         Actions.ShowMsg(O, '<$3>');
         Winner := O;
         Actions.PlayerWin([O], False);

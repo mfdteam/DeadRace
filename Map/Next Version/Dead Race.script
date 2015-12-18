@@ -1,3 +1,13 @@
+const
+  AI_REBORN_TIME = 15;
+  POS_CHECK_TIME = 30;
+  AUTOFEED_TIME = 10000;
+  STONE_TIME = 15;
+  FINISH_X = 55;
+  FINISH_Y = 55;
+  MAX_X = 63;
+  MAX_Y = 63;
+
 type
   aPlayer = Record
     SpawnX: Integer;
@@ -16,6 +26,7 @@ var
   Winner: Integer;
   RaceFinished: Boolean;
   AmbushMsg: array[0..7] of Boolean;
+  AIGroups, AIPosX, AIPosY, AIDir, AIUnitType: array of Integer;
 
 
 procedure AutoFeed;
@@ -40,7 +51,7 @@ end;
 
 procedure OnMissionStart;
 var
-  aX: Integer;
+  aX, aY, G: Integer;
 begin
   Actions.PlayWAV(-1, 'Go', 0.8);
   AutoFeed;
@@ -76,6 +87,26 @@ begin
     and (I <> K) then
       Actions.PlayerAllianceChange(I, K, True, True);
 
+  for aX := 1 to 63 do
+  for aY := 1 to 63 do
+  begin
+    G := States.GroupAt(aX, aY);
+    if G > 0 then
+      if (States.GroupMemberCount(G) = 1)
+      and (States.GroupOwner(G) = 9) then
+      begin
+        SetLength(AIGroups, Length(AIGroups) + 1);
+        SetLength(AIPosX, Length(AIPosX) + 1);
+        SetLength(AIPosY, Length(AIPosY) + 1);
+        SetLength(AIDir, Length(AIDir) + 1);
+        SetLength(AIUnitType, Length(AIUnitType) + 1);
+        AIGroups[Length(AIGroups) - 1] := G;
+        AIPosX[Length(AIPosX) - 1] := States.UnitPositionX(States.GroupMember(G, 0));
+        AIPosY[Length(AIPosY) - 1] := States.UnitPositionY(States.GroupMember(G, 0));
+        AIDir[Length(AIDir) - 1] := States.UnitDirection(States.GroupMember(G, 0));
+        AIUnitType[Length(AIUnitType) - 1] := States.UnitType(States.GroupMember(G, 0));
+      end;
+  end;
 end;
 
 
@@ -218,18 +249,18 @@ var
 begin
   if RaceFinished then
     Exit;
-  U := States.UnitAt(55, 55);
+  U := States.UnitAt(FINISH_X, FINISH_Y);
   if U > 0 then
     begin
       O := States.UnitOwner(U)
       if InRange(O, 0, 7) then
       begin
         Actions.GroupKillAll(Players[O].Hero, True);
-        Players[O].Hero := Actions.GiveGroup(O, 20, 55, 55, 1, 1, 1);
+        Players[O].Hero := Actions.GiveGroup(O, 20, FINISH_X, FINISH_Y, 1, 1, 1);
         Players[O].MusicWin := True;
         Players[O].HeroType := 20;  
         Actions.StopLoopedWAV(1);
-        Actions.PlayWAV(-1, 'Win', 1);
+        Actions.PlayWAVFadeMusic(-1, 'Win', 1);
         Actions.ShowMsg(O, '<$3>');
         Winner := O;
         Actions.PlayerWin([O], False);
@@ -248,7 +279,7 @@ end;
 
 procedure OnUnitDied(aID, aKiller: Integer);
 var
-  O, aX, aY, aD, aT: Integer;
+  O: Integer;
 begin
   O := States.UnitOwner(aID);
   if (InRange(aKiller, 9, 11))
@@ -260,16 +291,6 @@ begin
     Actions.CinematicStart(O);
     Actions.CinematicPanTo(O, Players[O].SpawnX, Players[O].SpawnY, 0);
     Actions.CinematicEnd(O);
-  end;
-
-  if (O = 9)
-  and (States.GroupMemberCount(States.UnitsGroup(aID)) = 1) then
-  begin
-    aT := States.UnitType(aID);
-    aX := States.UnitPositionX(aID);
-    aY := States.UnitPositionY(aID);
-    aD := States.UnitDirection(aID);
-    Actions.GiveGroup(9, aT, aX, aY, aD, 1, 1);
   end;
 
 end;
@@ -287,13 +308,23 @@ begin
     and (Players[I].SavePoint = True) then
       SavePoints(I);
 
+  if States.GameTime mod POS_CHECK_TIME = 0 then
+    for I := 0 to Length(AIGroups) - 1 do
+      if AIGroups[I] > 0 then
+        Actions.GroupOrderWalk(AIGroups[I], AIPosX[I], AIPosY[I], AIDir[I]);
+
+  if States.GameTime mod AI_REBORN_TIME = 0 then
+    for I := 0 to Length(AIGroups) - 1 do
+      if States.GroupDead(AIGroups[I]) then
+        AIGroups[I] := Actions.GiveGroup(9, AIUnitType[I], AIPosX[I], AIPosY[I], AIDir[I], 1, 1);
+
   if States.GameTime = 35 then
     Actions.PlayWAVLooped(-1, 'Nya', 0.8);
 
-  if States.GameTime mod 10000 = 0 then
+  if States.GameTime mod AUTOFEED_TIME = 0 then
     AutoFeed;
 
-  if States.GameTime mod 15 = 0 then
+  if States.GameTime mod STONE_TIME = 0 then
     AddStone;
 
   Win;

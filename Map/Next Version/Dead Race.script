@@ -87,8 +87,8 @@ begin
     and (I <> K) then
       Actions.PlayerAllianceChange(I, K, True, True);
 
-  for aX := 1 to 63 do
-  for aY := 1 to 63 do
+  for aX := 1 to MAX_X do
+  for aY := 1 to MAX_Y do
   begin
     G := States.GroupAt(aX, aY);
     if G > 0 then

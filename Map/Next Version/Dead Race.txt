@@ -1,4 +1,4 @@
 SetSpecial
 BlockPeacetime
 BigDesc
-Just for lulz||Made by MFD Team:||Idea & Dynamic scripts - [$FA1010]Sertask[]|Map - [$FACE64]vovets1[]|Some useless fixes - [$25259E]andreus[]|||[$CECE66]Dead Race v. 0.62[]||- Initial Release
+Just for lulz||Made by MFD Team:||Idea & Dynamic scripts - [$FA1010]Sertask[]|Map - [$FACE64]vovets1[]|Some useless fixes - [$25259E]andreus[]|||[$CECE66]Dead Race v. 0.67[]||- [$FE5828]Higher mission difficulty[] [$FE5828]level[]|- [$72FA22]AI units should reborn[] if they were killed by allied archers or towers|- All players should hear Victory sound|- [$FE70A7]Hero direction[] matches the movement direction|- Minor bugfixes||v. 0.62||- Initial Release
